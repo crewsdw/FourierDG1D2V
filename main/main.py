@@ -1,5 +1,5 @@
 import numpy as np
-# import cupy as np
+import cupy as cp
 import grid as g
 import variables as var
 import elliptic as ell
@@ -13,8 +13,8 @@ from copy import deepcopy
 elements, order = [8, 25, 25], 6
 
 # set up grid
-lows = np.array([-2.0 * np.pi, -6, -6])
-highs = np.array([2.0 * np.pi, 6, 6])
+lows = np.array([-np.pi, -4, -4])
+highs = np.array([np.pi, 4, 4])
 grid = g.PhaseSpace(lows=lows, highs=highs, elements=elements, order=order)
 
 # build distribution
@@ -34,17 +34,17 @@ plotter.spatial_scalar_plot(scalar=elliptic.field, y_axis='Electric Field')
 plotter.show()
 
 plotter3d = my_plt.Plotter3D(grid=grid)
-plotter3d.distribution_contours3d(distribution=distribution, contours=[0.01, 0.1])
+# plotter3d.distribution_contours3d(distribution=distribution, contours=[0.01, 0.1])
 # plotter3d.spectral_contours3d(distribution=distribution, contours=[-0.025, -0.01, 0.01, 0.025, 0.05, 0.1],
 #                               option='imag')
 
 # Set up fluxes
 flux = fx.DGFlux(resolutions=elements, order=order)
 
-# Set up timestepper
-dt = 5.0e-3
-step = 5.0e-3
-final_time = 2.0
+# Set up time-stepper
+dt = 1.0e-3
+step = 1.0e-3
+final_time = 3.0
 steps = int(final_time // step)
 dt_max = 1.0 / (np.amax(grid.x.wavenumbers) * np.amax(grid.v.arr))
 stepper = ts.Stepper(dt=dt, step=step, resolutions=elements, order=order, steps=steps)
@@ -54,13 +54,14 @@ stepper.main_loop(distribution=distribution, elliptic=elliptic,
 plotter.spatial_scalar_plot(scalar=distribution.zero_moment, y_axis='Zero moment')
 plotter.spatial_scalar_plot(scalar=elliptic.field, y_axis='Electric Field')
 plotter.time_series_plot(time_in=stepper.time_array, series_in=stepper.field_energy,
-                         y_axis='Electric energy', log=True, give_rate=False)
+                         y_axis='Electric energy', log=False, give_rate=False)
 plotter.time_series_plot(time_in=stepper.time_array, series_in=stepper.thermal_energy,
                          y_axis='Thermal energy', log=False)
 plotter.time_series_plot(time_in=stepper.time_array, series_in=stepper.density_array,
                          y_axis='Total density', log=False)
 plotter.time_series_plot(time_in=stepper.time_array, series_in=stepper.field_energy + stepper.thermal_energy,
                          y_axis='Total energy', log=False)
+plotter.velocity_contourf(dist_slice=cp.real(distribution.arr_nodal[4, :, :, :, :]))
 plotter.show()
 
 plotter3d.distribution_contours3d(distribution=distribution, contours=[0.01, 0.1])

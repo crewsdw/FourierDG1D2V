@@ -35,10 +35,12 @@ class Plotter:
             plt.grid(True), plt.legend(loc='best'), plt.tight_layout()
 
     def velocity_contourf(self, dist_slice):
+        arr = np.real(dist_slice.reshape(self.U.shape[0], self.U.shape[1]).get())
+        cb = np.linspace(np.amin(arr), np.amax(arr), num=100)
         plt.figure()
-        plt.contourf(self.U, self.V, dist_slice.reshape(self.U.shape[0], self.U.shape[1]).get())
-        plt.xlabel('u'), plt.ylabel('v')
-        plt.grid(True), plt.tight_layout()
+        plt.contourf(self.U, self.V, arr, cb)
+        plt.xlabel('u'), plt.ylabel('v'), plt.colorbar()
+        plt.tight_layout()
 
     def time_series_plot(self, time_in, series_in, y_axis, log=False, give_rate=False):
         time, series = time_in, series_in.get()
