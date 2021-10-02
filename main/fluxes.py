@@ -1,6 +1,7 @@
 import numpy as np
 import cupy as cp
 import variables as var
+import plotter as my_plt
 
 
 def basis_product(flux, basis_arr, axis, permutation):
@@ -54,7 +55,7 @@ class DGFlux:
         self.output = var.Distribution(resolutions=resolutions, order=order)
 
         # magnetic field
-        self.b_field = 0.0  # a constant
+        self.b_field = 0.1  # a constant
 
     def semi_discrete_rhs(self, distribution, elliptic, grid):
         """ Computes the semi-discrete equation """
@@ -89,13 +90,16 @@ class DGFlux:
 
     def u_flux_lgl(self, distribution, grid):
         u_flux = (-1.0 * self.field_flux.arr -
-                  self.b_field * grid.v.device_arr[None, :, :, None, None] * distribution.arr)
+                  self.b_field * grid.v.device_arr[None, None, None, :, :] * distribution.arr)
+        plotter = my_plt.Plotter(grid=grid)
+        plotter.velocity_contourf(dist_slice=cp.real(u_flux[3, :, :, :, :]))
+        plotter.show()
         return (basis_product(flux=u_flux, basis_arr=grid.u.local_basis.internal,
                               axis=2, permutation=self.permutations[0]) -
                 self.numerical_flux_lgl(flux=u_flux, grid=grid, dim=0))
 
     def v_flux_lgl(self, distribution, grid):
-        v_flux = self.b_field * grid.u.device_arr[None, None, None, :, :] * distribution.arr
+        v_flux = self.b_field * grid.u.device_arr[None, :, :, None, None] * distribution.arr
         return (basis_product(flux=v_flux, basis_arr=grid.v.local_basis.internal,
                               axis=4, permutation=self.permutations[1]) -
                 self.numerical_flux_lgl(flux=v_flux, grid=grid, dim=1))
@@ -107,8 +111,9 @@ class DGFlux:
         # set padded flux
         padded_flux = cp.zeros(self.padded_flux_sizes[dim]) + 0j
         padded_flux[self.flux_input_slices[dim]] = flux
-        # padded_flux[:, 0, -1] = 0.0  # -self.field_flux.arr[:, 0, 0]
-        # padded_flux[:, -1, 0] = 0.0  # -self.field_flux.arr[:, -1, 0]
+        padded_flux[:, 0, -1, :, :] = flux[:, 0, 0, :, :]  # -self.field_flux.arr[:, 0, 0]
+        padded_flux[:, -1, 0, :, :] = flux[:, -1, 0, :, :]  # -self.field_flux.arr[:, -1, 0]
+        padded_flux[:, 0, -1, :, :] = flux[:, 0, 0, :, :]
 
         # Compute a central flux
         num_flux[self.boundary_slices[dim][0]] = -1.0 * (cp.roll(padded_flux[self.boundary_slices_pad[dim][1]],

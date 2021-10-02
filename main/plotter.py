@@ -9,7 +9,7 @@ class Plotter:
         self.colormap = colormap
         self.grid = grid
         # Build structured grid, nodal
-        # self.X, self.V = np.meshgrid(grid.x.arr.flatten(), grid.v.arr.flatten(), indexing='ij')
+        self.U, self.V = np.meshgrid(grid.u.arr.flatten(), grid.v.arr.flatten(), indexing='ij')
         self.x = grid.x.arr
         self.k = grid.x.wavenumbers / grid.x.fundamental
         # Build structured grid, global spectral
@@ -33,6 +33,12 @@ class Plotter:
             plt.plot(self.k.flatten(), np.imag(spectrum), 'go', label='imaginary')
             plt.xlabel('Modes'), plt.ylabel(y_axis + ' spectrum')
             plt.grid(True), plt.legend(loc='best'), plt.tight_layout()
+
+    def velocity_contourf(self, dist_slice):
+        plt.figure()
+        plt.contourf(self.U, self.V, dist_slice.reshape(self.U.shape[0], self.U.shape[1]).get())
+        plt.xlabel('u'), plt.ylabel('v')
+        plt.grid(True), plt.tight_layout()
 
     def time_series_plot(self, time_in, series_in, y_axis, log=False, give_rate=False):
         time, series = time_in, series_in.get()
