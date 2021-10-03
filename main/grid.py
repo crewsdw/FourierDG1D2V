@@ -1,6 +1,7 @@
 import numpy as np
 import cupy as cp
 import basis as b
+import scipy.special as sp
 
 
 class SpaceGrid:
@@ -97,11 +98,11 @@ class VelocityGrid:
                                 axes=([0, 1], idx)) / self.J
 
     def compute_maxwellian(self, thermal_velocity, drift_velocity):
-        return cp.exp(-((self.device_arr - drift_velocity) /
-                        thermal_velocity) ** 2.0) / (np.sqrt(np.pi) * thermal_velocity)
+        return cp.exp(-0.5 * ((self.device_arr - drift_velocity) /
+                        thermal_velocity) ** 2.0) / (np.sqrt(2.0 * np.pi) * thermal_velocity)
 
     def compute_maxwellian_gradient(self, thermal_velocity, drift_velocity):
-        return (-2.0 * ((self.device_arr - drift_velocity) / thermal_velocity ** 2.0) *
+        return (-1.0 * ((self.device_arr - drift_velocity) / thermal_velocity ** 2.0) *
                 self.compute_maxwellian(thermal_velocity=thermal_velocity, drift_velocity=drift_velocity))
 
 
@@ -115,9 +116,41 @@ class PhaseSpace:
         self.v = VelocityGrid(low=lows[2], high=highs[2], elements=elements[2], order=order)
 
         self.v_mag_sq = self.u.device_arr[:, :, None, None] ** 2.0 + self.v.device_arr[None, None, :, :] ** 2.0
+        self.om_pc = 1.0  # cyclotron freq. ratio
 
-        # self.translation_matrix = cp.tensordot(self.u.translation_matrix, cp.eye(self.v.order), axes=0)
-        # print(self.translation_matrix.shape)
+    def eigenfunction(self, thermal_velocity, ring_parameter, eigenvalue, parity):
+        # Cylindrical coordinates grid set-up, using wave-number x.k1
+        u = np.tensordot(self.u.arr, np.ones_like(self.v.arr), axes=0)
+        v = np.tensordot(np.ones_like(self.u.arr), self.v.arr, axes=0)
+        r = np.sqrt(u ** 2.0 + v ** 2.0)
+        phi = np.arctan2(v, u)
+        beta = - self.x.fundamental * r * self.om_pc
+        vt = thermal_velocity
+
+        # radial gradient of distribution
+        x = 0.5 * (r / vt) ** 2.0
+        f0 = 1 / (2.0 * np.pi * (vt ** 2.0) * np.math.factorial(ring_parameter)) * np.multiply(x ** ring_parameter,
+                                                                                               np.exp(-x))
+        df_dv = np.multiply(f0, (ring_parameter / (x + 1.0e-16) - 1.0)) / (thermal_velocity ** 2.0)
+
+        # set up eigenmode
+        eig = 0 + 0j
+        if parity:
+            om1 = eigenvalue
+            om2 = -1.0 * np.real(eigenvalue) + 1j*np.imag(eigenvalue)
+            frequencies = [om1, om2]
+            for om in frequencies:
+                # Compute the eigenfunction using azimuthal Fourier series
+                terms_n = 20
+                upsilon = np.array([n / (n - om) * np.multiply(sp.jv(n, beta), np.exp(-1j * n * phi))
+                                    for n in range(-terms_n, terms_n + 1)]).sum(axis=0)
+                eig += np.multiply(df_dv, upsilon) / self.x.fundamental ** 2.0
+
+        # Construct total eigen-mode, first product with exp(i * v * sin(phi))
+        vel_mode = -1j * np.multiply(np.exp(1j * np.multiply(beta, np.sin(phi))), eig)
+        # Then product with exp(i * k * x)
+        return cp.asarray(np.real(np.tensordot(np.exp(1j * self.x.fundamental * self.x.arr), vel_mode, axes=0)))
+
 
     # def eigenfunction(self, thermal_velocity, drift_velocity, eigenvalue, beams='two-stream'):
     #     if beams == 'two-stream':

@@ -77,10 +77,14 @@ class Distribution:
                                   axes=0)
 
         # compute perturbation
-        # perturbation = cp.imag(grid.eigenfunction(thermal_velocity=1,
-        #                                           drift_velocity=[2, -2],
-        #                                           eigenvalue=1.20474886j))
-        perturbation = cp.multiply(cp.sin(grid.x.fundamental * grid.x.device_arr)[:, None, None, None, None], maxwellian)
+        perturbation = grid.eigenfunction(thermal_velocity=1,
+                                          ring_parameter=0,
+                                          eigenvalue=1.16387241 + 0j,
+                                          parity=True)
+
+        # perturbation = cp.multiply(cp.sin(grid.x.fundamental *
+        # grid.x.device_arr)[:, None, None, None, None], maxwellian)
+
         self.arr_nodal = maxwellian + 0.01 * perturbation
 
     def fourier_transform(self):

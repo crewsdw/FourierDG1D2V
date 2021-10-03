@@ -41,7 +41,7 @@ class Stepper:
             span = [self.time, self.next_time]
             self.ssprk3(distribution=distribution, elliptic=elliptic, grid=grid)
             self.time += self.step
-            if i % 10 == 0:
+            if i % 50 == 0:
                 self.time_array = np.append(self.time_array, self.time)
                 elliptic.poisson_solve(distribution=distribution, grid=grid)
                 self.field_energy = np.append(self.field_energy, elliptic.compute_field_energy(grid=grid))

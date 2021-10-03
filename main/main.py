@@ -10,11 +10,11 @@ import timestep as ts
 from copy import deepcopy
 
 # elements and order
-elements, order = [8, 25, 25], 6
+elements, order = [10, 25, 25], 8
 
 # set up grid
-lows = np.array([-np.pi, -4, -4])
-highs = np.array([np.pi, 4, 4])
+lows = np.array([-np.pi, -5, -5])
+highs = np.array([np.pi, 5, 5])
 grid = g.PhaseSpace(lows=lows, highs=highs, elements=elements, order=order)
 
 # build distribution
@@ -44,7 +44,7 @@ flux = fx.DGFlux(resolutions=elements, order=order)
 # Set up time-stepper
 dt = 1.0e-3
 step = 1.0e-3
-final_time = 3.0
+final_time = 6.0
 steps = int(final_time // step)
 dt_max = 1.0 / (np.amax(grid.x.wavenumbers) * np.amax(grid.v.arr))
 stepper = ts.Stepper(dt=dt, step=step, resolutions=elements, order=order, steps=steps)
