@@ -145,6 +145,12 @@ class PhaseSpace:
                 upsilon = np.array([n / (n - om) * np.multiply(sp.jv(n, beta), np.exp(-1j * n * phi))
                                     for n in range(-terms_n, terms_n + 1)]).sum(axis=0)
                 eig += np.multiply(df_dv, upsilon) / self.x.fundamental ** 2.0
+        if not parity:
+            # Compute the eigenfunction using azimuthal Fourier series
+            terms_n = 20
+            upsilon = np.array([n / (n - eigenvalue) * np.multiply(sp.jv(n, beta), np.exp(-1j * n * phi))
+                                for n in range(-terms_n, terms_n + 1)]).sum(axis=0)
+            eig += np.multiply(df_dv, upsilon) / self.x.fundamental ** 2.0
 
         # Construct total eigen-mode, first product with exp(i * v * sin(phi))
         vel_mode = -1j * np.multiply(np.exp(1j * np.multiply(beta, np.sin(phi))), eig)

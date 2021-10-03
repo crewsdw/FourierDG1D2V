@@ -77,15 +77,19 @@ class Distribution:
                                   axes=0)
 
         # compute perturbation
+        # Examples: L = 2pi, first mode:  1.16387241 + 0j
+        #           L = pi, first mode: 1.03859465
+        #           L = pi, second mode: 2.05498248
+        #           L = pi, third mode: 3.04616847
         perturbation = grid.eigenfunction(thermal_velocity=1,
                                           ring_parameter=0,
-                                          eigenvalue=1.16387241 + 0j,
-                                          parity=True)
+                                          eigenvalue=1.03859465,  # 2.05498248,  # 3.04616847
+                                          parity=False)
 
         # perturbation = cp.multiply(cp.sin(grid.x.fundamental *
         # grid.x.device_arr)[:, None, None, None, None], maxwellian)
 
-        self.arr_nodal = maxwellian + 0.01 * perturbation
+        self.arr_nodal = maxwellian + 0.1 * perturbation
 
     def fourier_transform(self):
         self.arr = cp.fft.fftshift(cp.fft.fft(self.arr_nodal, axis=0, norm='forward'), axes=0)

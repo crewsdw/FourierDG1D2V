@@ -10,11 +10,11 @@ import timestep as ts
 from copy import deepcopy
 
 # elements and order
-elements, order = [10, 25, 25], 8
+elements, order = [10, 30, 30], 8
 
 # set up grid
-lows = np.array([-np.pi, -5, -5])
-highs = np.array([np.pi, 5, 5])
+lows = np.array([-0.5 * np.pi, -5, -5])
+highs = np.array([0.5 * np.pi, 5, 5])
 grid = g.PhaseSpace(lows=lows, highs=highs, elements=elements, order=order)
 
 # build distribution
@@ -30,7 +30,9 @@ elliptic.poisson_solve(distribution=distribution, grid=grid)
 # test plotters
 plotter = my_plt.Plotter(grid=grid)
 plotter.spatial_scalar_plot(scalar=distribution.zero_moment, y_axis='Zero moment')
-plotter.spatial_scalar_plot(scalar=elliptic.field, y_axis='Electric Field')
+# plotter.spatial_scalar_plot(scalar=elliptic.field, y_axis='Electric Field')
+plotter.velocity_contourf(dist_slice=cp.imag(distribution.arr[6, :, :, :, :]))
+plotter.velocity_contourf(dist_slice=cp.real(distribution.arr[6, :, :, :, :]))
 plotter.show()
 
 plotter3d = my_plt.Plotter3D(grid=grid)
@@ -61,9 +63,23 @@ plotter.time_series_plot(time_in=stepper.time_array, series_in=stepper.density_a
                          y_axis='Total density', log=False)
 plotter.time_series_plot(time_in=stepper.time_array, series_in=stepper.field_energy + stepper.thermal_energy,
                          y_axis='Total energy', log=False)
-plotter.velocity_contourf(dist_slice=cp.real(distribution.arr_nodal[4, :, :, :, :]))
+# plotter.velocity_contourf(dist_slice=distribution.arr_nodal[3, :, :, :, :])
+plotter.velocity_contourf(dist_slice=cp.imag(distribution.arr[6, :, :, :, :]))
+plotter.velocity_contourf(dist_slice=cp.real(distribution.arr[6, :, :, :, :]))
+plotter.velocity_contourf(dist_slice=cp.imag(distribution.arr[7, :, :, :, :]))
+plotter.velocity_contourf(dist_slice=cp.real(distribution.arr[7, :, :, :, :]))
+plotter.velocity_contourf(dist_slice=cp.imag(distribution.arr[8, :, :, :, :]))
+plotter.velocity_contourf(dist_slice=cp.real(distribution.arr[8, :, :, :, :]))
 plotter.show()
 
-plotter3d.distribution_contours3d(distribution=distribution, contours=[0.01, 0.1])
-# plotter3d.spectral_contours3d(distribution=distribution, contours=[-0.025, -0.01, 0.01, 0.025, 0.05, 0.1],
+distribution.arr[4, :, :, :, :] = 0
+distribution.arr[5, :, :, :, :] = 0
+distribution.arr[6, :, :, :, :] = 0
+distribution.inverse_fourier_transform()
+
+contours = np.linspace(cp.amin(distribution.arr_nodal).get(), cp.amax(distribution.arr_nodal).get(), num=10)
+print(contours)
+
+plotter3d.distribution_contours3d(distribution=distribution, contours=contours)
+# plotter3d.spectral_contours3d(distribution=distribution, contours=[-0.025, -0.01, 0.01, 0.025q, 0.05, 0.1],
 #                               option='imag')

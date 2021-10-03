@@ -69,23 +69,33 @@ class Plotter3D:
 
     def __init__(self, grid):
         # Build structured grid, full space
-        (ix, iu, iv) = (cp.ones(grid.x.elements),
+        (ix, iu, iv) = (cp.ones(grid.x.elements+1),
                         cp.ones(grid.u.elements * grid.u.order),
                         cp.ones(grid.v.elements * grid.v.order))
-        (x3, u3, v3) = (outer3(a=grid.x.device_arr, b=iu, c=iv),
+        modified_x = cp.append(grid.x.device_arr, grid.x.device_arr[-1] + grid.x.dx)
+        (x3, u3, v3) = (outer3(a=modified_x, b=iu, c=iv),
                         outer3(a=ix, b=grid.u.device_arr.flatten(), c=iv),
                         outer3(a=ix, b=iu, c=grid.v.device_arr.flatten()))
         self.grid = pv.StructuredGrid(x3, u3, v3)
 
         # build structured grid, spectral space
+        ix2 = cp.ones(grid.x.elements)
+        u3_2, v3_2 = (outer3(a=ix2, b=grid.u.device_arr.flatten(), c=iv),
+                      outer3(a=ix2, b=iu, c=grid.v.device_arr.flatten()))
         k3 = outer3(a=grid.x.device_wavenumbers, b=iu, c=iv)
-        self.spectral_grid = pv.StructuredGrid(k3, u3, v3)
+        self.spectral_grid = pv.StructuredGrid(k3, u3_2, v3_2)
 
     def distribution_contours3d(self, distribution, contours):
         """
         plot contours of a scalar function f=f(x,y,z) on Plotter3D's grid
         """
-        self.grid['.'] = distribution.grid_flatten().get().transpose().flatten()
+        new_dist = np.zeros((distribution.x_res+1, distribution.u_res, distribution.order,
+                             distribution.v_res, distribution.order))  # distribution.arr_nodal  # grid_flatten().get()
+        new_dist[:-1, :, :, :, :] = distribution.arr_nodal.get()
+        new_dist[-1, :, :, :, :] = distribution.arr_nodal[0, :, :, :, :].get()
+
+        self.grid['.'] = new_dist.reshape(new_dist.shape[0], new_dist.shape[1]*new_dist.shape[2],
+                                          new_dist.shape[3]*new_dist.shape[4]).transpose().flatten()
         plot_contours = self.grid.contour(contours)
 
         # Create plot
@@ -96,7 +106,7 @@ class Plotter3D:
 
     def spectral_contours3d(self, distribution, contours, option='real'):
         """
-        plot contours of a scalar function f=f(k,y,z)self.spectral_grid['.'] = np.real(distribution.spectral_flatten().get().transpose().flatten())
+        plot contours of a scalar function f=f(k,y,z)
          on Plotter3D's spectral grid
         """
         if option == 'real':
