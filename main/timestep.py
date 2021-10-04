@@ -1,9 +1,9 @@
 import numpy as np
-import scipy.integrate as spint
+# import scipy.integrate as spint
 import time as timer
-import fluxes as fx
+# import fluxes as fx
 import variables as var
-import cupy as cp
+# import cupy as cp
 
 
 nonlinear_ssp_rk_switch = {
@@ -14,14 +14,14 @@ nonlinear_ssp_rk_switch = {
 
 
 class Stepper:
-    def __init__(self, dt, step, resolutions, order, steps):
+    def __init__(self, dt, step, resolutions, order, steps, flux):
         self.x_res, self.u_res, self.v_res = resolutions
         self.resolutions = resolutions
         self.order = order
         self.dt = dt
         self.step = step
         self.steps = steps
-        self.flux = fx.DGFlux(resolutions=resolutions, order=order)
+        self.flux = flux  # fx.DGFlux(resolutions=resolutions, order=order)
 
         # RK coefficients
         self.rk_coefficients = np.array(nonlinear_ssp_rk_switch.get(3, "nothing"))
@@ -36,6 +36,7 @@ class Stepper:
 
     def main_loop(self, distribution, elliptic, grid, plotter, plot=True):
         print('Beginning main loop')
+        t0 = timer.time()
         for i in range(self.steps):
             self.next_time = self.time + self.step
             span = [self.time, self.next_time]
@@ -47,11 +48,15 @@ class Stepper:
                 self.field_energy = np.append(self.field_energy, elliptic.compute_field_energy(grid=grid))
                 self.thermal_energy = np.append(self.thermal_energy, distribution.total_thermal_energy(grid=grid))
                 self.density_array = np.append(self.density_array, distribution.total_density(grid=grid))
-                print('Took step, time is {:0.3e}'.format(self.time))
+                print('\nTook x steps, time is {:0.3e}'.format(self.time))
+                print('Time since start is ' + str((timer.time() - t0) / 60.0) + ' minutes')
 
-            if plot:
-                plotter.distribution_contourf(distribution=distribution, plot_spectrum=False)
-                plotter.show()
+            # if plot:
+            #     plotter.distribution_contourf(distribution=distribution, plot_spectrum=False)
+            #     plotter.show()
+        print('\nAll done at time is {:0.3e}'.format(self.time))
+        print('Total steps were ' + str(self.steps))
+        print('Time since start is {:0.3e}'.format((timer.time() - t0)))
 
     def ssprk3(self, distribution, elliptic, grid):
         stage0 = var.Distribution(resolutions=self.resolutions, order=self.order)

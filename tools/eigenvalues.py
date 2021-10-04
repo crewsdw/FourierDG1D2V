@@ -121,16 +121,16 @@ def jacobian_fsolve(om, wave):
     return [[jr, -ji], [ji, jr]]
 
 
-X, Y = np.meshgrid(fr, fi, indexing='ij')
-arr = np.array([[dispersion(om=fz[i, j], wave=0.888) for j in range(fz.shape[1])] for i in range(fz.shape[0])])
+# X, Y = np.meshgrid(fr, fi, indexing='ij')
+# arr = np.array([[dispersion(om=fz[i, j], wave=0.888) for j in range(fz.shape[1])] for i in range(fz.shape[0])])
+#
+# plt.figure()
+# plt.contour(X, Y, np.real(arr), 0, colors='g')
+# plt.contour(X, Y, np.imag(arr), 0, colors='r')
+# plt.show()
 
-plt.figure()
-plt.contour(X, Y, np.real(arr), 0, colors='g')
-plt.contour(X, Y, np.imag(arr), 0, colors='r')
-plt.show()
 
-
-waves = np.linspace(0.0, 2.0, num=500)
+waves = np.linspace(0.5, 2.0*np.pi, num=1000)
 first_harmonic = np.zeros_like(waves) + 0j
 second_harmonic = np.zeros_like(waves) + 0j
 third_harmonic = np.zeros_like(waves) + 0j
@@ -153,16 +153,19 @@ guess_i[waves >= 1.1] = 0.3
 guess_r2[waves <= 0.6] = 2.5
 guess_r2[waves >= 0.6] = 2.2
 guess_r2[waves >= 0.75] = 2.1
+guess_r2[waves >= 1.0] = 2.0
 
 guess_r3[waves <= 0.75] = 4.0
 guess_r3[waves >= 0.75] = 3.5
 guess_r3[waves >= 1.2] = 3.0
 guess_r3[waves >= 1.5] = 2.5
+guess_r3[waves >= 1.75] = 3.0
 
 guess_r4[waves <= 0.75] = 5.0
 guess_r4[waves >= 0.75] = 4.5
 guess_r4[waves >= 1.2] = 4.0
 guess_r4[waves >= 1.5] = 3.5
+guess_r4[waves >= 1.75] = 4.0
 
 # first_harmonic[0] = 1.414
 # second_harmonic[0] = 2.0
@@ -182,21 +185,28 @@ for idx, k in enumerate(waves):
     fourth_harmonic[idx] = solution.x[0] + 1j * solution.x[1]
 
 plt.figure()
-plt.plot(waves, np.real(first_harmonic), 'k')
-plt.plot(waves, np.imag(first_harmonic), 'r')
-plt.plot(waves, np.real(second_harmonic), 'k')
-plt.plot(waves, np.real(third_harmonic), 'k')
-plt.plot(waves, np.real(fourth_harmonic), 'k')
+L = np.zeros_like(waves)
+L[1:] = 2.0 * np.pi / waves[1:]
+L[0] = L[1]
+plt.plot(L, np.real(first_harmonic), 'k')
+plt.plot(L, np.imag(first_harmonic), 'r')
+plt.plot(L, np.real(second_harmonic), 'k')
+plt.plot(L, np.real(third_harmonic), 'k')
+plt.plot(L, np.real(fourth_harmonic), 'k')
 plt.grid(True)
-plt.xlabel(r'Wavenumber $kr_L$'), plt.ylabel(r'Frequency $\omega / \omega_c$')
-plt.axis([waves[0], waves[-1], 0, 4.5])
+# plt.xlabel(r'Wavenumber $kr_L$'), plt.ylabel(r'Frequency $\omega / \omega_c$')
+plt.xlabel(r'Wavelength $L/\lambda_L$'), plt.ylabel(r'Frequency $\omega / \omega_c$')
+# plt.axis([waves[0], waves[-1], 0, 4.5])
+plt.axis([L[-1], L[0], -0.1, 5.1])
 plt.show()
 
 # A particular solution
-wave = 2.0
-print(opt.fsolve(dispersion_fsolve, x0=[1.1, 0], args=wave))
-print(opt.fsolve(dispersion_fsolve, x0=[2.000001, 0], args=wave))
-print(opt.fsolve(dispersion_fsolve, x0=[3.000001, 0], args=wave))
+wave = 0.888
+print(opt.fsolve(dispersion_fsolve, x0=[0.0, 0.348], args=wave))
+# print(opt.fsolve(dispersion_fsolve, x0=[2.000001, 0], args=wave))
+# print(opt.fsolve(dispersion_fsolve, x0=[3.000001, 0], args=wave))
+
+quit()
 
 X, Y = np.meshgrid(fr, fi, indexing='ij')
 arr = np.array([[dispersion(om=fz[i, j], wave=2.0) for j in range(fz.shape[1])] for i in range(fz.shape[0])])

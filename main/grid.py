@@ -24,11 +24,12 @@ class SpaceGrid:
         self.create_grid()
 
         # spectral properties
-        self.modes = elements // 2.0  # Nyquist frequency
+        self.modes = int(elements // 2.0 + 1)  # Nyquist frequency
         self.fundamental = 2.0 * np.pi / self.length
-        self.wavenumbers = self.fundamental * np.arange(-self.modes, self.modes)
+        # self.wavenumbers = self.fundamental * np.arange(-self.modes, self.modes)
+        self.wavenumbers = self.fundamental * np.arange(self.modes)
         self.device_wavenumbers = cp.array(self.wavenumbers)
-        self.zero_idx = int(self.modes)
+        self.zero_idx = 0  # int(self.modes)
         # self.two_thirds_low = int((1 * self.modes)//3 + 1)
         # self.two_thirds_high = self.wavenumbers.shape[0] - self.two_thirds_low
         self.pad_width = int((1 * self.modes) // 3 + 1)
@@ -99,7 +100,7 @@ class VelocityGrid:
 
     def compute_maxwellian(self, thermal_velocity, drift_velocity):
         return cp.exp(-0.5 * ((self.device_arr - drift_velocity) /
-                        thermal_velocity) ** 2.0) / (np.sqrt(2.0 * np.pi) * thermal_velocity)
+                              thermal_velocity) ** 2.0) / (np.sqrt(2.0 * np.pi) * thermal_velocity)
 
     def compute_maxwellian_gradient(self, thermal_velocity, drift_velocity):
         return (-1.0 * ((self.device_arr - drift_velocity) / thermal_velocity ** 2.0) *
@@ -110,13 +111,27 @@ class PhaseSpace:
     """ In this experiment, PhaseSpace consists of equispaced nodes and a
     LGL tensor-product grid in truncated velocity space """
 
-    def __init__(self, lows, highs, elements, order):
+    def __init__(self, lows, highs, elements, order, om_pc):
         self.x = SpaceGrid(low=lows[0], high=highs[0], elements=elements[0])
         self.u = VelocityGrid(low=lows[1], high=highs[1], elements=elements[1], order=order)
         self.v = VelocityGrid(low=lows[2], high=highs[2], elements=elements[2], order=order)
 
         self.v_mag_sq = self.u.device_arr[:, :, None, None] ** 2.0 + self.v.device_arr[None, None, :, :] ** 2.0
-        self.om_pc = 1.0  # cyclotron freq. ratio
+        self.om_pc = om_pc  # cyclotron freq. ratio
+
+    def ring_distribution(self, thermal_velocity, ring_parameter):
+        # Cylindrical coordinates grid set-up, using wave-number x.k1
+        u = np.tensordot(self.u.arr, np.ones_like(self.v.arr), axes=0)
+        v = np.tensordot(np.ones_like(self.u.arr), self.v.arr, axes=0)
+        r = np.sqrt(u ** 2.0 + v ** 2.0)
+        # phi = np.arctan2(v, u)
+        # beta = - self.x.fundamental * r * self.om_pc
+        vt = thermal_velocity
+
+        # Set distribution
+        x = 0.5 * (r / vt) ** 2.0
+        factor = 1 / (2.0 * np.pi * (vt ** 2.0) * np.math.factorial(ring_parameter))
+        return cp.asarray(factor * np.multiply(x ** ring_parameter, np.exp(-x)))
 
     def eigenfunction(self, thermal_velocity, ring_parameter, eigenvalue, parity):
         # Cylindrical coordinates grid set-up, using wave-number x.k1
@@ -137,7 +152,7 @@ class PhaseSpace:
         eig = 0 + 0j
         if parity:
             om1 = eigenvalue
-            om2 = -1.0 * np.real(eigenvalue) + 1j*np.imag(eigenvalue)
+            om2 = -1.0 * np.real(eigenvalue) + 1j * np.imag(eigenvalue)
             frequencies = [om1, om2]
             for om in frequencies:
                 # Compute the eigenfunction using azimuthal Fourier series
@@ -156,7 +171,6 @@ class PhaseSpace:
         vel_mode = -1j * np.multiply(np.exp(1j * np.multiply(beta, np.sin(phi))), eig)
         # Then product with exp(i * k * x)
         return cp.asarray(np.real(np.tensordot(np.exp(1j * self.x.fundamental * self.x.arr), vel_mode, axes=0)))
-
 
     # def eigenfunction(self, thermal_velocity, drift_velocity, eigenvalue, beams='two-stream'):
     #     if beams == 'two-stream':

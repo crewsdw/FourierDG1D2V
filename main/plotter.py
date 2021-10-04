@@ -12,6 +12,7 @@ class Plotter:
         self.U, self.V = np.meshgrid(grid.u.arr.flatten(), grid.v.arr.flatten(), indexing='ij')
         self.x = grid.x.arr
         self.k = grid.x.wavenumbers / grid.x.fundamental
+        self.length = grid.x.length
         # Build structured grid, global spectral
         # self.FX, self.FV = np.meshgrid(grid.x.wavenumbers / grid.x.fundamental, grid.v.device_arr.flatten(),
         #                              indexing='ij')
@@ -42,8 +43,26 @@ class Plotter:
         plt.xlabel('u'), plt.ylabel('v'), plt.colorbar()
         plt.tight_layout()
 
+    def velocity_contourf_complex(self, dist_slice, title='Mode 0'):
+        arr_r = np.real(dist_slice.reshape(self.U.shape[0], self.U.shape[1]).get())
+        arr_i = np.imag(dist_slice.reshape(self.U.shape[0], self.U.shape[1]).get())
+        arr_i[0, 0] += 1.0e-15
+
+        cb_r = np.linspace(np.amin(arr_r), np.amax(arr_r), num=100)
+        cb_i = np.linspace(np.amin(arr_i), np.amax(arr_i), num=100)
+
+        fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+        cm = ax[0].contourf(self.U, self.V, arr_r, cb_r)
+        fig.colorbar(cm, ax=ax[0])
+        ax[0].set_xlabel('u'), ax[0].set_ylabel('v'), ax[0].set_title('Real')  # , ax[0].colorbar()
+        cm = ax[1].contourf(self.U, self.V, arr_i, cb_i)
+        ax[1].set_xlabel('u'), ax[1].set_ylabel('v'), ax[1].set_title('Imag')  # , ax[1].colorbar()
+        fig.colorbar(cm, ax=ax[1])
+
+        plt.suptitle(title), plt.tight_layout()
+
     def time_series_plot(self, time_in, series_in, y_axis, log=False, give_rate=False):
-        time, series = time_in, series_in.get()
+        time, series = time_in, series_in.get() / self.length
         plt.figure()
         if log:
             plt.semilogy(time, series, 'o--')
@@ -54,9 +73,11 @@ class Plotter:
         plt.grid(True), plt.tight_layout()
         if give_rate:
             lin_fit = np.polyfit(time, np.log(series), 1)
-            print('Numerical rate: {:0.10e}'.format(lin_fit[0]))
-            print('cf. exact rate: {:0.10e}'.format(2 * 2.409497728e-01))
-            print('The difference is {:0.10e}'.format(lin_fit[0] - 2 * 2.409497728e-01))
+            exact = 2 * 0.1 * 3.48694202e-01
+            print('\nNumerical rate: {:0.10e}'.format(lin_fit[0]))
+            # print('cf. exact rate: {:0.10e}'.format(2 * 2.409497728e-01))  #
+            print('cf. exact rate: {:0.10e}'.format(exact))
+            print('The difference is {:0.10e}'.format(lin_fit[0] - exact))
 
     def show(self):
         plt.show()
@@ -79,7 +100,7 @@ class Plotter3D:
         self.grid = pv.StructuredGrid(x3, u3, v3)
 
         # build structured grid, spectral space
-        ix2 = cp.ones(grid.x.elements)
+        ix2 = cp.ones(grid.x.modes)
         u3_2, v3_2 = (outer3(a=ix2, b=grid.u.device_arr.flatten(), c=iv),
                       outer3(a=ix2, b=iu, c=grid.v.device_arr.flatten()))
         k3 = outer3(a=grid.x.device_wavenumbers, b=iu, c=iv)
