@@ -61,11 +61,11 @@ quad_arr = np.array([[1, -0.9988664044200710501855,  0.002908622553155140958],
 
 
 # Parameters
-a = 10.0  # 10.0  # 10.0  # 20.0 # omega_p / omega_c
-j = 6
+a = 1  # 10.0  # 10.0  # 10.0  # 20.0 # omega_p / omega_c
+j = 0
 # Grids
-fr = np.linspace(-1.5, 1.5, num=75)
-fi = np.linspace(-0.1, 1.5, num=75)
+fr = np.linspace(-0.5, 4.5, num=300)
+fi = np.linspace(-0.001, 0.2, num=300)
 fz = np.tensordot(fr, np.ones_like(fi), axes=0) + 1.0j * np.tensordot(np.ones_like(fr), fi, axes=0)
 
 
@@ -97,7 +97,7 @@ def jac_integrand(x, om, wave):
 def dispersion(om, wave):
     inner = integrand(x=quad_arr[:, 1], om=om, wave=wave)
     quad = 0.5 * np.pi * np.tensordot(quad_arr[:, 2], inner, axes=([0], [0]))
-    return np.sin(np.pi * om) + (a ** 2.0) * quad
+    return 1.0 + (a ** 2.0) * quad / np.sin(np.pi * om)
     # return 1.0 + (a ** 2.0) * quad / np.sin(np.pi * om)
 
 
@@ -121,13 +121,13 @@ def jacobian_fsolve(om, wave):
     return [[jr, -ji], [ji, jr]]
 
 
-# X, Y = np.meshgrid(fr, fi, indexing='ij')
-# arr = np.array([[dispersion(om=fz[i, j], wave=0.888) for j in range(fz.shape[1])] for i in range(fz.shape[0])])
-#
-# plt.figure()
-# plt.contour(X, Y, np.real(arr), 0, colors='g')
-# plt.contour(X, Y, np.imag(arr), 0, colors='r')
-# plt.show()
+X, Y = np.meshgrid(fr, fi, indexing='ij')
+arr = np.array([[dispersion(om=fz[i, j], wave=0.1) for j in range(fz.shape[1])] for i in range(fz.shape[0])])
+
+plt.figure()
+plt.contour(X, Y, np.real(arr), 0, colors='g')
+plt.contour(X, Y, np.imag(arr), 0, colors='r')
+plt.grid(True), plt.show()
 
 
 waves = np.linspace(0.5, 2.0*np.pi, num=1000)

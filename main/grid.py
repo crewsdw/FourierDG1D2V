@@ -130,7 +130,7 @@ class PhaseSpace:
 
         # Set distribution
         x = 0.5 * (r / vt) ** 2.0
-        factor = 1 / (2.0 * np.pi * (vt ** 2.0) * np.math.factorial(ring_parameter))
+        factor = 1 / (2.0 * np.pi * (vt ** 2.0) * sp.gamma(ring_parameter + 1.0))
         return cp.asarray(factor * np.multiply(x ** ring_parameter, np.exp(-x)))
 
     def eigenfunction(self, thermal_velocity, ring_parameter, eigenvalue, parity):
@@ -144,8 +144,8 @@ class PhaseSpace:
 
         # radial gradient of distribution
         x = 0.5 * (r / vt) ** 2.0
-        f0 = 1 / (2.0 * np.pi * (vt ** 2.0) * np.math.factorial(ring_parameter)) * np.multiply(x ** ring_parameter,
-                                                                                               np.exp(-x))
+        f0 = 1 / (2.0 * np.pi * (vt ** 2.0) * sp.gamma(ring_parameter + 1.0)) * np.multiply(x ** ring_parameter,
+                                                                                            np.exp(-x))
         df_dv = np.multiply(f0, (ring_parameter / (x + 1.0e-16) - 1.0)) / (thermal_velocity ** 2.0)
 
         # set up eigenmode

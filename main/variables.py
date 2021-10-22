@@ -78,7 +78,7 @@ class Distribution:
         #                                            axes=0),
         #                           axes=0)
         ring_distribution = cp.tensordot(ix, grid.ring_distribution(thermal_velocity=1.0,
-                                                                    ring_parameter=6),
+                                                                    ring_parameter=2.0 * cp.pi),
                                          axes=0)
 
         # compute perturbation
@@ -87,7 +87,7 @@ class Distribution:
         #           L = pi, second mode: 2.05498248
         #           L = pi, third mode: 3.04616847
         perturbation = grid.eigenfunction(thermal_velocity=1,
-                                          ring_parameter=6,
+                                          ring_parameter=2.0 * cp.pi,
                                           eigenvalue=-3.48694202e-01j,
                                           parity=False)
 
@@ -103,6 +103,7 @@ class Distribution:
     def inverse_fourier_transform(self):
         # self.arr_nodal = cp.real(cp.fft.ifft(cp.fft.fftshift(self.arr, axes=0), norm='forward', axis=0))
         self.arr_nodal = cp.fft.irfft(self.arr, axis=0, norm='forward')
+
 
 def trapz(y, dx):
     """ Custom trapz routine using cupy """
